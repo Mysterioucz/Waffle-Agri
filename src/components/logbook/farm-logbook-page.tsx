@@ -28,12 +28,15 @@ import {
     DollarSign,
     Package,
     Loader2,
+    Edit,
+    Trash2,
 } from "lucide-react";
 
 export default function FarmLogbookPage() {
     const [activities, setActivities] = useState<FarmActivity[]>([]);
     const [loading, setLoading] = useState(true);
     const [showAddForm, setShowAddForm] = useState(false);
+    const [editingActivity, setEditingActivity] = useState<string | null>(null);
     const [newActivity, setNewActivity] = useState<Partial<FarmActivity>>({
         type: "watering",
         title: "",
@@ -237,6 +240,128 @@ export default function FarmLogbookPage() {
         });
     };
 
+    const handleEditActivity = (activity: FarmActivity) => {
+        setEditingActivity(activity.id);
+        setNewActivity({
+            type: activity.type,
+            title: activity.title,
+            description: activity.description,
+            date: activity.date,
+            duration: activity.duration,
+            laborHours: activity.laborHours,
+            cost: activity.cost,
+            resources: activity.resources,
+        });
+        setShowAddForm(true);
+    };
+
+    const handleUpdateActivity = async () => {
+        if (!newActivity.title || !newActivity.type || !editingActivity) return;
+
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "";
+
+        const activityData = {
+            farmId,
+            cropId: null,
+            userId,
+            type: newActivity.type?.toUpperCase() as ActivityType,
+            title: newActivity.title,
+            description: newActivity.description || "",
+            date: newActivity.date || new Date(),
+            duration:
+                newActivity.duration ||
+                ACTIVITY_DURATIONS[newActivity.type as string] ||
+                60,
+            laborHours: newActivity.laborHours || 0,
+            cost:
+                newActivity.cost ||
+                calculateResourceCost(newActivity.resources || []),
+            resources: (newActivity.resources || []).map((r) => ({
+                resourceType: r.resourceType?.toUpperCase() || "OTHER",
+                name: r.name || "",
+                quantity: r.quantity || 0,
+                unit: r.unit || "",
+                costPerUnit: r.costPerUnit || 0,
+                totalCost: r.totalCost || 0,
+            })),
+        };
+
+        try {
+            const res = await fetch(
+                `${backendUrl}/activities/${editingActivity}`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(activityData),
+                },
+            );
+
+            const result = await res.json();
+
+            if (result.success) {
+                await fetchActivities();
+                setShowAddForm(false);
+                setEditingActivity(null);
+                setNewActivity({
+                    type: "watering",
+                    title: "",
+                    description: "",
+                    date: new Date(),
+                    duration: 60,
+                    laborHours: 1,
+                    cost: 0,
+                    resources: [],
+                });
+            }
+        } catch (error) {
+            console.error("Error updating activity:", error);
+        }
+    };
+
+    const handleDeleteActivity = async (activityId: string) => {
+        if (
+            !confirm(
+                "Are you sure you want to delete this activity? This action cannot be undone.",
+            )
+        ) {
+            return;
+        }
+
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "";
+
+        try {
+            const res = await fetch(`${backendUrl}/activities/${activityId}`, {
+                method: "DELETE",
+            });
+
+            const result = await res.json();
+
+            if (result.success) {
+                await fetchActivities();
+            }
+        } catch (error) {
+            console.error("Error deleting activity:", error);
+        }
+    };
+
+    const handleCancelEdit = () => {
+        setShowAddForm(false);
+        setEditingActivity(null);
+        setShowResourceForm(false);
+        setNewActivity({
+            type: "watering",
+            title: "",
+            description: "",
+            date: new Date(),
+            duration: 60,
+            laborHours: 1,
+            cost: 0,
+            resources: [],
+        });
+    };
+
     return (
         <div className="min-h-screen bg-gray-50">
             <header className="bg-green-600 text-white shadow-lg">
@@ -326,7 +451,16 @@ export default function FarmLogbookPage() {
 
                 {/* Add Activity Button */}
                 <div className="mb-6">
-                    <Button onClick={() => setShowAddForm(!showAddForm)}>
+                    <Button
+                        onClick={() => {
+                            if (showAddForm && editingActivity) {
+                                // If currently editing, cancel and start fresh
+                                handleCancelEdit();
+                            } else {
+                                setShowAddForm(!showAddForm);
+                            }
+                        }}
+                    >
                         {showAddForm ? (
                             <div className="flex items-center">
                                 <X className="h-4 w-4 mr-2" />
@@ -345,7 +479,11 @@ export default function FarmLogbookPage() {
                 {showAddForm && (
                     <Card className="mb-6">
                         <CardHeader>
-                            <CardTitle>Log New Activity</CardTitle>
+                            <CardTitle>
+                                {editingActivity
+                                    ? "Edit Activity"
+                                    : "Log New Activity"}
+                            </CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
@@ -763,17 +901,22 @@ export default function FarmLogbookPage() {
                                 <div className="flex justify-end gap-3 pt-4 border-t">
                                     <Button
                                         variant="outline"
-                                        onClick={() => {
-                                            setShowAddForm(false);
-                                            setShowResourceForm(false);
-                                        }}
+                                        onClick={handleCancelEdit}
                                     >
                                         Cancel
                                     </Button>
-                                    <Button onClick={handleAddActivity}>
+                                    <Button
+                                        onClick={
+                                            editingActivity
+                                                ? handleUpdateActivity
+                                                : handleAddActivity
+                                        }
+                                    >
                                         <div className="flex items-center">
                                             <Plus className="h-4 w-4 mr-2" />
-                                            Save Activity
+                                            {editingActivity
+                                                ? "Update Activity"
+                                                : "Save Activity"}
                                         </div>
                                     </Button>
                                 </div>
@@ -842,7 +985,7 @@ export default function FarmLogbookPage() {
                                                             </div>
                                                             <div className="flex-1">
                                                                 <div className="flex items-start justify-between mb-2">
-                                                                    <div>
+                                                                    <div className="flex-1">
                                                                         <h4 className="font-semibold text-gray-900">
                                                                             {
                                                                                 activity.title
@@ -854,14 +997,38 @@ export default function FarmLogbookPage() {
                                                                             }
                                                                         </p>
                                                                     </div>
-                                                                    <Badge
-                                                                        variant="default"
-                                                                        className="capitalize"
-                                                                    >
-                                                                        {
-                                                                            activity.type
-                                                                        }
-                                                                    </Badge>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <Badge
+                                                                            variant="default"
+                                                                            className="capitalize"
+                                                                        >
+                                                                            {
+                                                                                activity.type
+                                                                            }
+                                                                        </Badge>
+                                                                        <Button
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            onClick={() =>
+                                                                                handleEditActivity(
+                                                                                    activity,
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            <Edit className="h-4 w-4" />
+                                                                        </Button>
+                                                                        <Button
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            onClick={() =>
+                                                                                handleDeleteActivity(
+                                                                                    activity.id,
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            <Trash2 className="h-4 w-4 text-red-600" />
+                                                                        </Button>
+                                                                    </div>
                                                                 </div>
                                                                 <div className="flex items-center gap-6 text-sm text-gray-500">
                                                                     {activity.duration && (
