@@ -164,7 +164,7 @@ npm run dev
 
 ### Frontend
 
-- **Framework**: Next.js 15 (React 19)
+- **Framework**: Next.js 16 (React 19)
 - **Language**: TypeScript
 - **Styling**: TailwindCSS v4
 - **Icons**: Lucide React
