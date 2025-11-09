@@ -1,5 +1,80 @@
 import { NextResponse } from "next/server";
 import { ProfitForecast, CostBreakdown, ForecastFactor } from "@/types";
+import { prisma } from "@/lib/prisma";
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const cropId = searchParams.get("cropId");
+
+    if (!cropId) {
+      return NextResponse.json(
+        { success: false, error: "cropId is required" },
+        { status: 400 }
+      );
+    }
+
+    // Fetch profit forecast from database
+    const forecast = await prisma.profitForecast.findFirst({
+      where: { cropId },
+      include: {
+        crop: {
+          include: {
+            farm: true,
+          },
+        },
+        factors: true,
+        breakdown: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (!forecast) {
+      return NextResponse.json(
+        { success: false, error: "No forecast found for this crop" },
+        { status: 404 }
+      );
+    }
+
+    // Convert to API format
+    const apiFormat = {
+      farmId: forecast.crop.farmId,
+      cropId: forecast.cropId,
+      period: forecast.period,
+      estimatedRevenue: forecast.estimatedRevenue,
+      estimatedCosts: forecast.breakdown.reduce((acc, item) => {
+        acc[item.category.toLowerCase()] = item.amount;
+        acc.total = (acc.total || 0) + item.amount;
+        return acc;
+      }, {} as any),
+      estimatedProfit: forecast.estimatedProfit,
+      confidence: forecast.confidence,
+      factors: forecast.factors.map((f) => ({
+        name: f.name,
+        impact: f.impact.toLowerCase(),
+        description: f.description,
+        confidence: f.confidence,
+      })),
+      generatedAt: forecast.createdAt,
+    };
+
+    return NextResponse.json({
+      success: true,
+      data: apiFormat,
+      timestamp: new Date(),
+    });
+  } catch (error) {
+    console.error("Profit Forecast GET error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to fetch profit forecast",
+        timestamp: new Date(),
+      },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(request: Request) {
   try {

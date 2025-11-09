@@ -1,10 +1,45 @@
 import { NextResponse } from "next/server";
 import { MarketPrediction, PricePrediction } from "@/types";
+import { prisma } from "@/lib/prisma";
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const cropName = searchParams.get("crop") || "rice";
+    const cropId = searchParams.get("cropId");
+
+    // If cropId provided, fetch from database
+    if (cropId) {
+      const prediction = await prisma.marketPrediction.findFirst({
+        where: { cropId },
+        include: { predictedPrices: true },
+        orderBy: { createdAt: "desc" },
+      });
+
+      if (prediction) {
+        const apiFormat = {
+          cropName: prediction.cropName,
+          currentPrice: prediction.currentPrice,
+          predictedPrices: prediction.predictedPrices.map((p) => ({
+            date: new Date(p.month),
+            predictedPrice: p.price,
+            confidenceLow: p.price * (1 - (1 - p.confidence) * 0.5),
+            confidenceHigh: p.price * (1 + (1 - p.confidence) * 0.5),
+          })),
+          trend: prediction.trend.toLowerCase(),
+          volatility: "medium",
+          recommendation: prediction.recommendation,
+          lastUpdated: prediction.createdAt,
+        };
+
+        return NextResponse.json({
+          success: true,
+          data: apiFormat,
+          timestamp: new Date(),
+          source: "database",
+        });
+      }
+    }
 
     const prediction = await generateMarketPrediction(cropName);
 
@@ -12,6 +47,7 @@ export async function GET(request: Request) {
       success: true,
       data: prediction,
       timestamp: new Date(),
+      source: "generated",
     });
   } catch (error) {
     console.error("Market Prediction API error:", error);

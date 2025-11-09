@@ -7,6 +7,7 @@ import {
   WeatherCondition,
   WeatherAlert,
 } from "@/types";
+import { prisma } from "@/lib/prisma";
 
 // Mock Pangu-Weather API integration
 // In production, this would call the actual Huawei Pangu-Weather API
@@ -14,8 +15,29 @@ import {
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
+    const farmId = searchParams.get("farmId");
     const lat = parseFloat(searchParams.get("lat") || "13.7563");
     const lon = parseFloat(searchParams.get("lon") || "100.5018");
+
+    // If farmId is provided, try to get weather from database
+    if (farmId) {
+      const dbWeather = await prisma.weather.findFirst({
+        where: { farmId },
+        orderBy: { date: "desc" },
+        include: { farm: true },
+      });
+
+      if (dbWeather) {
+        // Convert DB weather to API format
+        const weatherData = convertDbWeatherToApiFormat(dbWeather, lat, lon);
+        return NextResponse.json({
+          success: true,
+          data: weatherData,
+          timestamp: new Date(),
+          source: "database",
+        });
+      }
+    }
 
     // Simulate API call to Pangu-Weather
     const weatherData = await fetchPanguWeather(lat, lon);
@@ -24,6 +46,7 @@ export async function GET(request: Request) {
       success: true,
       data: weatherData,
       timestamp: new Date(),
+      source: "pangu-weather-api",
     });
   } catch (error) {
     console.error("Weather API error:", error);
@@ -36,6 +59,86 @@ export async function GET(request: Request) {
       { status: 500 }
     );
   }
+}
+
+function convertDbWeatherToApiFormat(
+  dbWeather: any,
+  lat: number,
+  lon: number
+): WeatherData {
+  const now = new Date();
+
+  const currentWeather: CurrentWeather = {
+    temperature: dbWeather.temperature,
+    feelsLike: dbWeather.temperature + 3,
+    humidity: dbWeather.humidity,
+    precipitation: dbWeather.rainfall || 0,
+    windSpeed: dbWeather.windSpeed || 10,
+    windDirection: 180,
+    pressure: dbWeather.pressure || 1013,
+    cloudCover: 50,
+    uvIndex: 7,
+    visibility: 10,
+    condition: dbWeather.condition
+      .toLowerCase()
+      .replace(/_/g, "-") as WeatherCondition,
+  };
+
+  // Generate forecast data based on current weather
+  const hourly: HourlyWeather[] = Array.from({ length: 24 }, (_, i) => ({
+    time: new Date(now.getTime() + i * 3600000),
+    temperature: dbWeather.temperature + (Math.random() * 4 - 2),
+    precipitation: (dbWeather.rainfall || 0) * (0.5 + Math.random()),
+    precipitationProbability: Math.min((dbWeather.rainfall || 0) * 10, 100),
+    windSpeed: (dbWeather.windSpeed || 10) + (Math.random() * 4 - 2),
+    humidity: dbWeather.humidity + (Math.random() * 10 - 5),
+    condition: currentWeather.condition,
+  }));
+
+  const daily: DailyWeather[] = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date(now.getTime() + i * 86400000);
+    return {
+      date,
+      temperatureMax: dbWeather.temperature + 2 + Math.random() * 3,
+      temperatureMin: dbWeather.temperature - 6 - Math.random() * 2,
+      precipitation: (dbWeather.rainfall || 0) * (0.8 + Math.random() * 0.4),
+      precipitationProbability: Math.min((dbWeather.rainfall || 0) * 10, 100),
+      windSpeed: (dbWeather.windSpeed || 10) + Math.random() * 5,
+      humidity: dbWeather.humidity + (Math.random() * 10 - 5),
+      sunrise: new Date(date.setHours(6, 0, 0)),
+      sunset: new Date(date.setHours(18, 30, 0)),
+      condition: currentWeather.condition,
+    };
+  });
+
+  const alerts: WeatherAlert[] = [];
+  if (dbWeather.temperature > 38) {
+    alerts.push({
+      id: "heat-warning-1",
+      severity: "warning",
+      type: "heat",
+      title: "Extreme Heat Warning",
+      description:
+        "Temperatures expected to exceed 38°C. Take precautions for crops and outdoor activities.",
+      startTime: now,
+      endTime: new Date(now.getTime() + 86400000),
+      affectedAreas: ["Central Region"],
+      recommendations: [
+        "Increase watering frequency",
+        "Provide shade for sensitive crops",
+        "Avoid midday fieldwork",
+      ],
+    });
+  }
+
+  return {
+    location: { latitude: lat, longitude: lon },
+    current: currentWeather,
+    hourly,
+    daily,
+    alerts,
+    lastUpdated: dbWeather.createdAt,
+  };
 }
 
 async function fetchPanguWeather(

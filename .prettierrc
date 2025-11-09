@@ -1,0 +1,7 @@
+{
+    "arrowParens": "always",
+    "trailingComma": "all",
+    "tabWidth": 4,
+    "semi": true,
+    "plugins": ["prettier-plugin-organize-imports"]
+}
