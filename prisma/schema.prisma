@@ -1,0 +1,496 @@
+// Prisma schema for AI-Driven Farm Management System
+// Database: PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+  // output = "../src/generated"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("PRISMA_DATABASE_URL")
+}
+
+// ============================================
+// User & Authentication
+// ============================================
+
+model User {
+  id                String      @id @default(cuid())
+  email             String      @unique
+  name              String
+  phone             String?
+  subscriptionTier  SubscriptionTier @default(FREE)
+  points            Int         @default(0)
+  streak            Int         @default(0)
+  level             Int         @default(1)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  
+  // Relations
+  farms             Farm[]
+  activities        FarmActivity[]
+  badges            UserBadge[]
+  achievements      UserAchievement[]
+  rewards           UserReward[]
+  aiGuidances       AIGuidance[]
+  
+  @@map("users")
+}
+
+enum SubscriptionTier {
+  FREE
+  BASIC
+  PRO
+  ENTERPRISE
+}
+
+// ============================================
+// Farm Management
+// ============================================
+
+model Farm {
+  id              String      @id @default(cuid())
+  name            String
+  location        String
+  totalArea       Float
+  soilType        SoilType?
+  userId          String
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  // Relations
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  crops           Crop[]
+  activities      FarmActivity[]
+  weather         Weather[]
+  
+  @@map("farms")
+  @@index([userId])
+}
+
+enum SoilType {
+  CLAY
+  SANDY
+  LOAM
+  SILT
+  PEAT
+  CHALKY
+}
+
+model Crop {
+  id              String      @id @default(cuid())
+  name            String
+  variety         String?
+  plantingDate    DateTime
+  expectedHarvest DateTime
+  area            Float
+  status          CropStatus  @default(GROWING)
+  healthScore     Float       @default(100)
+  farmId          String
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  // Relations
+  farm            Farm        @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  activities      FarmActivity[]
+  profitForecasts ProfitForecast[]
+  marketPredictions MarketPrediction[]
+  
+  @@map("crops")
+  @@index([farmId])
+  @@index([status])
+}
+
+enum CropStatus {
+  PLANNING
+  PLANTED
+  GROWING
+  FLOWERING
+  READY_TO_HARVEST
+  HARVESTED
+  FAILED
+}
+
+// ============================================
+// Farm Activities & Logbook
+// ============================================
+
+model FarmActivity {
+  id              String      @id @default(cuid())
+  farmId          String
+  cropId          String?
+  userId          String
+  type            ActivityType
+  title           String
+  description     String?
+  date            DateTime
+  duration        Int?        // in minutes
+  laborHours      Float?
+  cost            Float?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  // Relations
+  farm            Farm        @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  crop            Crop?       @relation(fields: [cropId], references: [id], onDelete: SetNull)
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resources       ResourceUsage[]
+  
+  @@map("farm_activities")
+  @@index([farmId])
+  @@index([cropId])
+  @@index([userId])
+  @@index([type])
+  @@index([date])
+}
+
+enum ActivityType {
+  WATERING
+  FERTILIZING
+  PESTICIDE
+  WEEDING
+  HARVESTING
+  PLANTING
+  PRUNING
+  INSPECTION
+  OTHER
+}
+
+model ResourceUsage {
+  id              String      @id @default(cuid())
+  activityId      String
+  resourceType    ResourceType
+  name            String
+  quantity        Float
+  unit            String
+  costPerUnit     Float
+  totalCost       Float
+  createdAt       DateTime    @default(now())
+  
+  // Relations
+  activity        FarmActivity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  
+  @@map("resource_usage")
+  @@index([activityId])
+  @@index([resourceType])
+}
+
+enum ResourceType {
+  WATER
+  FERTILIZER
+  PESTICIDE
+  SEED
+  LABOR
+  EQUIPMENT
+  OTHER
+}
+
+// ============================================
+// Weather Data
+// ============================================
+
+model Weather {
+  id              String      @id @default(cuid())
+  farmId          String
+  date            DateTime
+  condition       WeatherCondition
+  temperature     Float
+  humidity        Float
+  rainfall        Float?
+  windSpeed       Float?
+  pressure        Float?
+  source          String      @default("Pangu-Weather")
+  createdAt       DateTime    @default(now())
+  
+  // Relations
+  farm            Farm        @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  
+  @@map("weather_data")
+  @@index([farmId])
+  @@index([date])
+}
+
+enum WeatherCondition {
+  CLEAR
+  PARTLY_CLOUDY
+  CLOUDY
+  RAIN
+  HEAVY_RAIN
+  THUNDERSTORM
+  FOG
+  HOT
+  COLD
+}
+
+// ============================================
+// AI Guidance & Analytics
+// ============================================
+
+model AIGuidance {
+  id              String      @id @default(cuid())
+  userId          String
+  category        GuidanceCategory
+  title           String
+  message         String      @db.Text
+  priority        Priority    @default(MEDIUM)
+  actionable      Boolean     @default(true)
+  deadline        DateTime?
+  confidence      Float       @default(0.8)
+  source          String      @default("ModelArts-Pangu")
+  isRead          Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+  
+  // Relations
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("ai_guidance")
+  @@index([userId])
+  @@index([category])
+  @@index([priority])
+  @@index([isRead])
+}
+
+enum GuidanceCategory {
+  WATERING
+  FERTILIZING
+  PEST_CONTROL
+  HARVESTING
+  PLANTING
+  WEATHER_ALERT
+  MARKET_OPPORTUNITY
+  GENERAL
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model ProfitForecast {
+  id                String      @id @default(cuid())
+  cropId            String
+  cropName          String
+  period            String      // e.g., "Q1 2025"
+  estimatedRevenue  Float
+  estimatedCost     Float
+  estimatedProfit   Float
+  confidence        Float
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  
+  // Relations
+  crop              Crop        @relation(fields: [cropId], references: [id], onDelete: Cascade)
+  factors           ForecastFactor[]
+  breakdown         CostBreakdown[]
+  
+  @@map("profit_forecasts")
+  @@index([cropId])
+}
+
+model ForecastFactor {
+  id              String      @id @default(cuid())
+  forecastId      String
+  name            String
+  description     String      @db.Text
+  impact          Impact
+  confidence      Float
+  
+  // Relations
+  forecast        ProfitForecast @relation(fields: [forecastId], references: [id], onDelete: Cascade)
+  
+  @@map("forecast_factors")
+  @@index([forecastId])
+}
+
+enum Impact {
+  POSITIVE
+  NEGATIVE
+  NEUTRAL
+}
+
+model CostBreakdown {
+  id              String      @id @default(cuid())
+  forecastId      String
+  category        String
+  amount          Float
+  percentage      Float
+  
+  // Relations
+  forecast        ProfitForecast @relation(fields: [forecastId], references: [id], onDelete: Cascade)
+  
+  @@map("cost_breakdown")
+  @@index([forecastId])
+}
+
+model MarketPrediction {
+  id              String      @id @default(cuid())
+  cropId          String
+  cropName        String
+  region          String
+  currentPrice    Float
+  trend           Trend
+  confidence      Float
+  recommendation  String      @db.Text
+  source          String      @default("ModelArts-Market-Analysis")
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  // Relations
+  crop            Crop        @relation(fields: [cropId], references: [id], onDelete: Cascade)
+  predictedPrices PredictedPrice[]
+  
+  @@map("market_predictions")
+  @@index([cropId])
+  @@index([region])
+}
+
+enum Trend {
+  INCREASING
+  STABLE
+  DECREASING
+}
+
+model PredictedPrice {
+  id              String      @id @default(cuid())
+  predictionId    String
+  month           String
+  price           Float
+  confidence      Float
+  
+  // Relations
+  prediction      MarketPrediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+  
+  @@map("predicted_prices")
+  @@index([predictionId])
+}
+
+// ============================================
+// Gamification System
+// ============================================
+
+model Badge {
+  id              String      @id @default(cuid())
+  name            String      @unique
+  description     String
+  icon            String
+  rarity          BadgeRarity
+  requirement     String      @db.Text
+  createdAt       DateTime    @default(now())
+  
+  // Relations
+  userBadges      UserBadge[]
+  
+  @@map("badges")
+}
+
+enum BadgeRarity {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+model UserBadge {
+  id              String      @id @default(cuid())
+  userId          String
+  badgeId         String
+  earnedAt        DateTime    @default(now())
+  
+  // Relations
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge           Badge       @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, badgeId])
+  @@map("user_badges")
+  @@index([userId])
+  @@index([badgeId])
+}
+
+model Achievement {
+  id              String      @id @default(cuid())
+  name            String      @unique
+  description     String
+  category        AchievementCategory
+  pointsReward    Int
+  requirementType String
+  requirementTarget Int
+  createdAt       DateTime    @default(now())
+  
+  // Relations
+  userAchievements UserAchievement[]
+  
+  @@map("achievements")
+}
+
+enum AchievementCategory {
+  PRODUCTIVITY
+  CONSISTENCY
+  EFFICIENCY
+  QUALITY
+  SUSTAINABILITY
+  LEARNING
+}
+
+model UserAchievement {
+  id              String      @id @default(cuid())
+  userId          String
+  achievementId   String
+  progress        Int         @default(0)
+  completed       Boolean     @default(false)
+  completedAt     DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  // Relations
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement     Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+  @@index([userId])
+  @@index([achievementId])
+}
+
+model Reward {
+  id              String      @id @default(cuid())
+  name            String
+  description     String
+  type            RewardType
+  pointsCost      Int
+  duration        Int?        // in days
+  available       Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  
+  // Relations
+  userRewards     UserReward[]
+  
+  @@map("rewards")
+}
+
+enum RewardType {
+  SUBSCRIPTION_UPGRADE
+  EXPERT_CONSULTATION
+  PREMIUM_FEATURE
+  DISCOUNT
+  OTHER
+}
+
+model UserReward {
+  id              String      @id @default(cuid())
+  userId          String
+  rewardId        String
+  redeemedAt      DateTime    @default(now())
+  expiresAt       DateTime?
+  used            Boolean     @default(false)
+  
+  // Relations
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reward          Reward      @relation(fields: [rewardId], references: [id], onDelete: Cascade)
+  
+  @@map("user_rewards")
+  @@index([userId])
+  @@index([rewardId])
+}

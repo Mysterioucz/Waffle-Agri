@@ -208,15 +208,15 @@ export default function FarmLogbookPage() {
         <div className="mb-6">
           <Button onClick={() => setShowAddForm(!showAddForm)}>
             {showAddForm ? (
-              <>
+              <div className="flex items-center">
                 <X className="h-4 w-4 mr-2" />
                 Cancel
-              </>
+              </div>
             ) : (
-              <>
+              <div className="flex items-center">
                 <Plus className="h-4 w-4 mr-2" />
                 Log New Activity
-              </>
+              </div>
             )}
           </Button>
         </div>
