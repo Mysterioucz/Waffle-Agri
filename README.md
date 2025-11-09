@@ -390,27 +390,6 @@ vercel --prod
     - Configure DLI for data processing
     - Set up analytics pipeline
 
-### Post-Deployment
-
-1. **Seed the database:**
-
-```bash
-curl -X POST https://your-app.com/api/seed \
-  -H "Content-Type: application/json" \
-  -d '{"secret": "your_secret_key"}'
-```
-
-2. **Verify deployment:**
-    - Check all pages load correctly
-    - Test API endpoints
-    - Verify database connections
-    - Test gamification features
-
-3. **Monitor:**
-    - Set up error tracking
-    - Monitor API performance
-    - Check database metrics
-
 ## 🔒 Security Features
 
 - **TLS 1.3 encryption** for all communications
