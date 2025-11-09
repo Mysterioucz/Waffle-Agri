@@ -172,7 +172,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               {weather ? (
-                <div className="space-y-4">
+                <div className="space-y-4 text-gray-400">
                   <div className="flex items-center justify-between">
                     <WeatherIcon
                       condition={weather.current.condition}
@@ -182,32 +182,32 @@ export default function DashboardPage() {
                       <div className="text-4xl font-bold">
                         {Math.round(weather.current.temperature)}°C
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-gray-800">
                         Feels like {Math.round(weather.current.feelsLike)}°C
                       </div>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
-                      <div className="text-gray-500">Humidity</div>
+                      <div className="text-gray-800">Humidity</div>
                       <div className="font-semibold">
                         {Math.round(weather.current.humidity)}%
                       </div>
                     </div>
                     <div>
-                      <div className="text-gray-500">Wind</div>
+                      <div className="text-gray-800">Wind</div>
                       <div className="font-semibold">
                         {Math.round(weather.current.windSpeed)} km/h
                       </div>
                     </div>
                     <div>
-                      <div className="text-gray-500">Precipitation</div>
+                      <div className="text-gray-800">Precipitation</div>
                       <div className="font-semibold">
                         {Math.round(weather.current.precipitation)} mm
                       </div>
                     </div>
                     <div>
-                      <div className="text-gray-500">UV Index</div>
+                      <div className="text-gray-800">UV Index</div>
                       <div className="font-semibold">
                         {weather.current.uvIndex}
                       </div>
@@ -281,7 +281,7 @@ export default function DashboardPage() {
                     <input
                       type="checkbox"
                       className="mt-1 h-5 w-5 rounded border-gray-300 text-green-600 focus:ring-green-500"
-                      checked={task.completed}
+                      defaultChecked={task.completed}
                     />
                     <div className="flex-1">
                       <div className="flex items-start justify-between mb-2">
@@ -357,7 +357,7 @@ export default function DashboardPage() {
             <CardTitle>Active Crops</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-green-700">
               {farm.crops.map((crop) => (
                 <div
                   key={crop.id}
