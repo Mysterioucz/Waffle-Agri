@@ -41,6 +41,13 @@ export async function GET(request: Request) {
       );
     }
 
+    // Fetch all available rewards from the store
+    const allRewards = await prisma.reward.findMany({
+      orderBy: {
+        pointsCost: "asc",
+      },
+    });
+
     return NextResponse.json({
       success: true,
       data: {
@@ -63,7 +70,8 @@ export async function GET(request: Request) {
           completed: ua.completed,
           completedAt: ua.completedAt,
         })),
-        rewards: user.rewards.map((ur) => ({
+        rewards: allRewards, // All available rewards in the store
+        redeemedRewards: user.rewards.map((ur) => ({
           ...ur.reward,
           redeemedAt: ur.redeemedAt,
           expiresAt: ur.expiresAt,

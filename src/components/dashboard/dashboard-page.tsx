@@ -20,95 +20,68 @@ import {
 export default function DashboardPage() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [guidance, setGuidance] = useState<DailyGuidance | null>(null);
+  const [farm, setFarm] = useState<any>(null);
+  const [crops, setCrops] = useState<any[]>([]);
+  const [user, setUser] = useState<any>({ level: 1, points: 0, streak: 0 });
   const [loading, setLoading] = useState(true);
 
-  // Mock user and farm data
-  const user: User = {
-    id: "user-1",
-    email: "farmer@example.com",
-    name: "สมชาย เกษตรกร",
-    language: "th",
-    subscriptionTier: "Pro",
-    points: 1250,
-    streak: 7,
-    level: 5,
-    badges: [],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
-  const farm: Farm = {
-    id: "farm-1",
-    userId: "user-1",
-    name: "Prototype Farm",
-    location: {
-      latitude: 13.7563,
-      longitude: 100.5018,
-      address: "Bangkok, Thailand",
-      province: "Bangkok",
-    },
-    totalArea: 10,
-    crops: [
-      {
-        id: "crop-1",
-        farmId: "farm-1",
-        name: "rice",
-        variety: "Jasmine",
-        plantingDate: new Date("2025-09-01"),
-        expectedHarvestDate: new Date("2025-12-30"),
-        area: 5,
-        status: "growing",
-        growthStage: "vegetative",
-        healthStatus: "good",
-      },
-      {
-        id: "crop-2",
-        farmId: "farm-1",
-        name: "vegetables",
-        variety: "Mixed",
-        plantingDate: new Date("2025-10-15"),
-        expectedHarvestDate: new Date("2025-12-15"),
-        area: 3,
-        status: "growing",
-        growthStage: "seedling",
-        healthStatus: "excellent",
-      },
-    ],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
+  // Using demo user ID from seed data
+  const userId = "user-1";
 
   const fetchDashboardData = async () => {
     try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "";
 
-      // Fetch weather data
-      const weatherRes = await fetch(
-        `${backendUrl}/weather?lat=${farm.location.latitude}&lon=${farm.location.longitude}`
+      // Fetch user data
+      const userRes = await fetch(
+        `${backendUrl}/gamification?userId=${userId}`
       );
-      const weatherData = await weatherRes.json();
-      if (weatherData.success) {
-        setWeather(weatherData.data);
+      const userData = await userRes.json();
+      if (userData.success) {
+        setUser(userData.data.user);
       }
 
-      // Fetch AI guidance
-      const guidanceRes = await fetch(`${backendUrl}/ai/guidance`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: user.id,
-          farmId: farm.id,
-          weatherData: weatherData.data,
-          cropData: farm.crops,
-        }),
-      });
-      const guidanceData = await guidanceRes.json();
-      if (guidanceData.success) {
-        setGuidance(guidanceData.data);
+      // Fetch farms
+      const farmsRes = await fetch(`${backendUrl}/farms?userId=${userId}`);
+      const farmsData = await farmsRes.json();
+
+      if (farmsData.success && farmsData.data.length > 0) {
+        const userFarm = farmsData.data[0];
+        setFarm(userFarm);
+
+        // Fetch crops for this farm
+        const cropsRes = await fetch(
+          `${backendUrl}/crops?farmId=${userFarm.id}`
+        );
+        const cropsData = await cropsRes.json();
+        if (cropsData.success) {
+          setCrops(cropsData.data);
+        }
+
+        // Fetch weather data using farmId
+        const weatherRes = await fetch(
+          `${backendUrl}/weather?farmId=${userFarm.id}`
+        );
+        const weatherData = await weatherRes.json();
+        if (weatherData.success) {
+          setWeather(weatherData.data);
+        }
+
+        // Fetch AI guidance
+        const guidanceRes = await fetch(`${backendUrl}/ai/guidance`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId,
+            farmId: userFarm.id,
+            weatherData: weatherData.data,
+            cropData: cropsData.data || [],
+          }),
+        });
+        const guidanceData = await guidanceRes.json();
+        if (guidanceData.success) {
+          setGuidance(guidanceData.data);
+        }
       }
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
@@ -116,6 +89,10 @@ export default function DashboardPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
 
   if (loading) {
     return (
@@ -138,7 +115,9 @@ export default function DashboardPage() {
               <Wheat className="h-8 w-8" />
               <div>
                 <h1 className="text-3xl font-bold">Waffle Agri</h1>
-                <p className="text-green-100 mt-1">{farm.name}</p>
+                <p className="text-green-100 mt-1">
+                  {farm?.name || "Loading..."}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-6">
@@ -383,53 +362,69 @@ export default function DashboardPage() {
             <CardTitle>Active Crops</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-green-700">
-              {farm.crops.map((crop) => (
-                <div
-                  key={crop.id}
-                  className="p-4 bg-green-50 rounded-lg border border-green-200"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h4 className="font-semibold text-green-900 capitalize">
-                        {crop.name}
-                      </h4>
-                      <p className="text-sm text-green-700">{crop.variety}</p>
+            {crops.length === 0 ? (
+              <p className="text-gray-500 text-center py-4">
+                No crops available
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-green-700">
+                {crops.map((crop: any) => (
+                  <div
+                    key={crop.id}
+                    className="p-4 bg-green-50 rounded-lg border border-green-200"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h4 className="font-semibold text-green-900 capitalize">
+                          {crop.name}
+                        </h4>
+                        {crop.variety && (
+                          <p className="text-sm text-green-700">
+                            {crop.variety}
+                          </p>
+                        )}
+                      </div>
+                      <Badge
+                        variant={
+                          crop.status === "GROWING" || crop.status === "HEALTHY"
+                            ? "success"
+                            : crop.status === "FLOWERING" ||
+                              crop.status === "FRUITING"
+                            ? "warning"
+                            : "danger"
+                        }
+                      >
+                        {crop.status?.toLowerCase().replace("_", " ")}
+                      </Badge>
                     </div>
-                    <Badge
-                      variant={
-                        crop.healthStatus === "excellent" ||
-                        crop.healthStatus === "good"
-                          ? "success"
-                          : crop.healthStatus === "fair"
-                          ? "warning"
-                          : "danger"
-                      }
-                    >
-                      {crop.healthStatus}
-                    </Badge>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Area:</span>
+                        <span className="font-semibold">
+                          {crop.areaSize} rai
+                        </span>
+                      </div>
+                      {crop.healthScore !== null && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Health:</span>
+                          <span className="font-semibold">
+                            {crop.healthScore}%
+                          </span>
+                        </div>
+                      )}
+                      {crop.expectedHarvestDate && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Harvest:</span>
+                          <span className="font-semibold">
+                            {formatRelativeDate(crop.expectedHarvestDate)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Area:</span>
-                      <span className="font-semibold">{crop.area} rai</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Stage:</span>
-                      <span className="font-semibold capitalize">
-                        {crop.growthStage}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Harvest:</span>
-                      <span className="font-semibold">
-                        {formatRelativeDate(crop.expectedHarvestDate)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </main>

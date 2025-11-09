@@ -30,46 +30,65 @@ export default function AnalyticsPage() {
   );
   const [marketPrediction, setMarketPrediction] =
     useState<MarketPrediction | null>(null);
-  const [selectedCrop, setSelectedCrop] = useState("rice");
+  const [crops, setCrops] = useState<any[]>([]);
+  const [selectedCropId, setSelectedCropId] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
-  const crops = [
-    { value: "rice", label: "Rice", Icon: Wheat, area: 5 },
-    { value: "corn", label: "Corn", Icon: Sprout, area: 3 },
-    { value: "vegetables", label: "Vegetables", Icon: Leaf, area: 2 },
-  ];
+  const userId = "user-1";
+  const farmId = "farm-1";
 
+  // Fetch crops on component mount
   useEffect(() => {
-    fetchAnalytics();
-  }, [selectedCrop]);
+    fetchCrops();
+  }, []);
+
+  // Fetch analytics when selected crop changes
+  useEffect(() => {
+    if (selectedCropId && crops.length > 0) {
+      fetchAnalytics();
+    }
+  }, [selectedCropId]);
+
+  const fetchCrops = async () => {
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "";
+      const cropsRes = await fetch(`${backendUrl}/crops?farmId=${farmId}`);
+      const cropsData = await cropsRes.json();
+
+      if (cropsData.success && cropsData.data.length > 0) {
+        setCrops(cropsData.data);
+        setSelectedCropId(cropsData.data[0].id); // Select first crop by default
+      }
+    } catch (error) {
+      console.error("Error fetching crops:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchAnalytics = async () => {
     setLoading(true);
     try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "";
+      const selectedCrop = crops.find((c) => c.id === selectedCropId);
 
-      // Fetch profit forecast
+      if (!selectedCrop) {
+        setLoading(false);
+        return;
+      }
+
+      // Fetch profit forecast with cropId
       const forecastRes = await fetch(
-        `${backendUrl}/analytics/profit-forecast`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            farmId: "farm-1",
-            cropId: "crop-1",
-            cropName: selectedCrop,
-            area: crops.find((c) => c.value === selectedCrop)?.area || 5,
-          }),
-        }
+        `${backendUrl}/analytics/profit-forecast?cropId=${selectedCropId}`
       );
       const forecastData = await forecastRes.json();
       if (forecastData.success) {
         setProfitForecast(forecastData.data);
       }
 
-      // Fetch market prediction
+      // Fetch market prediction with cropId
       const marketRes = await fetch(
-        `${backendUrl}/analytics/market-prediction?crop=${selectedCrop}`
+        `${backendUrl}/analytics/market-prediction?cropId=${selectedCropId}`
       );
       const marketData = await marketRes.json();
       if (marketData.success) {
@@ -126,22 +145,34 @@ export default function AnalyticsPage() {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Select Crop for Analysis
           </label>
-          <div className="flex gap-3">
-            {crops.map((crop) => {
-              const CropIcon = crop.Icon;
-              return (
-                <Button
-                  key={crop.value}
-                  variant={selectedCrop === crop.value ? "primary" : "outline"}
-                  onClick={() => setSelectedCrop(crop.value)}
-                  className="flex items-center gap-2"
-                >
-                  <CropIcon className="h-4 w-4" />
-                  {crop.label}
-                </Button>
-              );
-            })}
-          </div>
+          {crops.length === 0 ? (
+            <p className="text-gray-500">No crops available</p>
+          ) : (
+            <div className="flex gap-3 flex-wrap">
+              {crops.map((crop) => {
+                // Get icon based on crop name
+                const getCropIcon = (name: string) => {
+                  const nameLower = name.toLowerCase();
+                  if (nameLower.includes("rice")) return Wheat;
+                  if (nameLower.includes("corn")) return Sprout;
+                  return Leaf;
+                };
+                const CropIcon = getCropIcon(crop.name);
+
+                return (
+                  <Button
+                    key={crop.id}
+                    variant={selectedCropId === crop.id ? "primary" : "outline"}
+                    onClick={() => setSelectedCropId(crop.id)}
+                    className="flex items-center gap-2"
+                  >
+                    <CropIcon className="h-4 w-4" />
+                    {crop.name} ({crop.areaSize} rai)
+                  </Button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {loading ? (
@@ -155,7 +186,10 @@ export default function AnalyticsPage() {
             {profitForecast && (
               <Card className="mb-8">
                 <CardHeader>
-                  <CardTitle>Profit Forecast - {selectedCrop}</CardTitle>
+                  <CardTitle>
+                    Profit Forecast -{" "}
+                    {crops.find((c) => c.id === selectedCropId)?.name || ""}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
