@@ -1,36 +1,36 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FarmActivity, ActivityType, ResourceUsage } from "@/types";
-import {
-    formatRelativeDate,
-    calculateResourceCost,
-    groupActivitiesByDate,
-} from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ACTIVITY_DURATIONS } from "@/lib/constants";
 import {
-    Droplet,
-    Sprout,
+    calculateResourceCost,
+    formatRelativeDate,
+    groupActivitiesByDate,
+} from "@/lib/utils";
+import { ActivityType, FarmActivity, ResourceUsage } from "@/types";
+import {
+    BookOpen,
     Bug,
+    Clock,
+    DollarSign,
+    Droplet,
+    Edit,
+    FileText,
     Leaf,
-    Wheat,
+    Loader2,
+    Package,
+    Plus,
     Scissors,
     Search,
-    FileText,
-    BookOpen,
-    Plus,
-    X,
-    Clock,
-    Users,
-    DollarSign,
-    Package,
-    Loader2,
-    Edit,
+    Sprout,
     Trash2,
+    Users,
+    Wheat,
+    X,
 } from "lucide-react";
+import React, { useEffect, useState } from "react";
 
 export default function FarmLogbookPage() {
     const [activities, setActivities] = useState<FarmActivity[]>([]);

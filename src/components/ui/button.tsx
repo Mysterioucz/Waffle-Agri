@@ -57,7 +57,8 @@ export function Button({
                             stroke="currentColor"
                             strokeWidth="4"
                             fill="none"
-                        />s
+                        />
+                        s
                         <path
                             className="opacity-75"
                             fill="currentColor"
