@@ -1,4 +1,3 @@
-````markdown
 # 🌾 Waffle Agri - AI-Driven Farm Management System
 
 ## Overview
@@ -494,4 +493,3 @@ Copyright © 2025 Waffle Agri Team
 ---
 
 Built with ❤️ for HCD 2025 using Huawei Cloud Technologies 🌾
-````
