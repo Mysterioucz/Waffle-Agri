@@ -84,9 +84,11 @@ export default function DashboardPage() {
 
   const fetchDashboardData = async () => {
     try {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "";
+
       // Fetch weather data
       const weatherRes = await fetch(
-        `/api/weather?lat=${farm.location.latitude}&lon=${farm.location.longitude}`
+        `${backendUrl}/weather?lat=${farm.location.latitude}&lon=${farm.location.longitude}`
       );
       const weatherData = await weatherRes.json();
       if (weatherData.success) {
@@ -94,7 +96,7 @@ export default function DashboardPage() {
       }
 
       // Fetch AI guidance
-      const guidanceRes = await fetch("/api/ai/guidance", {
+      const guidanceRes = await fetch(`${backendUrl}/ai/guidance`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

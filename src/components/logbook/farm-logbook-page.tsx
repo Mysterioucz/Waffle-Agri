@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,56 +27,12 @@ import {
   Users,
   DollarSign,
   Package,
+  Loader2,
 } from "lucide-react";
 
 export default function FarmLogbookPage() {
-  const [activities, setActivities] = useState<FarmActivity[]>([
-    {
-      id: "activity-1",
-      farmId: "farm-1",
-      cropId: "crop-1",
-      type: "watering",
-      title: "Morning Watering",
-      description: "Watered rice field section A",
-      date: new Date(),
-      duration: 45,
-      resources: [
-        {
-          resourceType: "water",
-          name: "Irrigation water",
-          quantity: 1000,
-          unit: "liters",
-          costPerUnit: 0.05,
-          totalCost: 50,
-        },
-      ],
-      laborHours: 1,
-      cost: 50,
-      createdAt: new Date(),
-    },
-    {
-      id: "activity-2",
-      farmId: "farm-1",
-      type: "fertilizing",
-      title: "Applied NPK Fertilizer",
-      description: "Applied balanced fertilizer to vegetable plot",
-      date: new Date(Date.now() - 86400000),
-      duration: 60,
-      resources: [
-        {
-          resourceType: "fertilizer",
-          name: "NPK 16-16-16",
-          quantity: 20,
-          unit: "kg",
-          costPerUnit: 25,
-          totalCost: 500,
-        },
-      ],
-      laborHours: 1.5,
-      cost: 500,
-      createdAt: new Date(Date.now() - 86400000),
-    },
-  ]);
+  const [activities, setActivities] = useState<FarmActivity[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newActivity, setNewActivity] = useState<Partial<FarmActivity>>({
     type: "watering",
@@ -85,6 +41,53 @@ export default function FarmLogbookPage() {
     date: new Date(),
     resources: [],
   });
+
+  // Using demo user ID and farm ID from seed data
+  const userId = "user-1";
+  const farmId = "farm-1";
+
+  useEffect(() => {
+    fetchActivities();
+  }, []);
+
+  const fetchActivities = async () => {
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "";
+      const res = await fetch(`${backendUrl}/activities?userId=${userId}`);
+      const data = await res.json();
+
+      if (data.success) {
+        // Convert DB format to component format
+        const formattedActivities = data.data.map((activity: any) => ({
+          id: activity.id,
+          farmId: activity.farmId,
+          cropId: activity.cropId,
+          type: activity.type.toLowerCase() as ActivityType,
+          title: activity.title,
+          description: activity.description || "",
+          date: new Date(activity.date),
+          duration: activity.duration,
+          laborHours: activity.laborHours,
+          cost: activity.cost,
+          resources:
+            activity.resources?.map((r: any) => ({
+              resourceType: r.resourceType.toLowerCase(),
+              name: r.name,
+              quantity: r.quantity,
+              unit: r.unit,
+              costPerUnit: r.costPerUnit,
+              totalCost: r.totalCost,
+            })) || [],
+          createdAt: new Date(activity.createdAt),
+        }));
+        setActivities(formattedActivities);
+      }
+    } catch (error) {
+      console.error("Error fetching activities:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const activityIcons: Record<
     ActivityType,
@@ -103,31 +106,60 @@ export default function FarmLogbookPage() {
 
   const groupedActivities = groupActivitiesByDate(activities);
 
-  const handleAddActivity = () => {
+  const handleAddActivity = async () => {
     if (!newActivity.title || !newActivity.type) return;
 
-    const activity: FarmActivity = {
-      id: `activity-${Date.now()}`,
-      farmId: "farm-1",
-      type: newActivity.type as ActivityType,
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "";
+
+    // Prepare activity data for API
+    const activityData = {
+      farmId,
+      cropId: null, // Can be set if specific to a crop
+      userId,
+      type: newActivity.type?.toUpperCase() as ActivityType,
       title: newActivity.title,
       description: newActivity.description || "",
       date: newActivity.date || new Date(),
       duration: ACTIVITY_DURATIONS[newActivity.type as string] || 60,
-      resources: newActivity.resources || [],
+      laborHours: newActivity.laborHours || 0,
       cost: calculateResourceCost(newActivity.resources || []),
-      createdAt: new Date(),
+      resources: (newActivity.resources || []).map((r) => ({
+        resourceType: r.resourceType?.toUpperCase() || "OTHER",
+        name: r.name || "",
+        quantity: r.quantity || 0,
+        unit: r.unit || "",
+        costPerUnit: r.costPerUnit || 0,
+        totalCost: r.totalCost || 0,
+      })),
     };
 
-    setActivities([activity, ...activities]);
-    setShowAddForm(false);
-    setNewActivity({
-      type: "watering",
-      title: "",
-      description: "",
-      date: new Date(),
-      resources: [],
-    });
+    try {
+      const res = await fetch(`${backendUrl}/activities`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(activityData),
+      });
+
+      const result = await res.json();
+
+      if (result.success) {
+        // Refresh activities from database
+        await fetchActivities();
+
+        setShowAddForm(false);
+        setNewActivity({
+          type: "watering",
+          title: "",
+          description: "",
+          date: new Date(),
+          resources: [],
+        });
+      }
+    } catch (error) {
+      console.error("Error creating activity:", error);
+    }
   };
 
   return (
@@ -323,79 +355,94 @@ export default function FarmLogbookPage() {
             <CardTitle>Activity History</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-6">
-              {Object.entries(groupedActivities)
-                .sort(
-                  ([dateA], [dateB]) =>
-                    new Date(dateB).getTime() - new Date(dateA).getTime()
-                )
-                .map(([date, dayActivities]) => (
-                  <div key={date}>
-                    <h3 className="text-lg font-semibold text-gray-700 mb-3">
-                      {formatRelativeDate(new Date(date))}
-                    </h3>
-                    <div className="space-y-3">
-                      {dayActivities.map((activity) => (
-                        <div
-                          key={activity.id}
-                          className="flex items-start gap-4 p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
-                        >
-                          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-green-100">
-                            {(() => {
-                              const Icon = activityIcons[activity.type];
-                              return (
-                                <Icon className="h-6 w-6 text-green-600" />
-                              );
-                            })()}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-start justify-between mb-2">
-                              <div>
-                                <h4 className="font-semibold text-gray-900">
-                                  {activity.title}
-                                </h4>
-                                <p className="text-sm text-gray-600">
-                                  {activity.description}
-                                </p>
-                              </div>
-                              <Badge variant="default" className="capitalize">
-                                {activity.type}
-                              </Badge>
+            {loading ? (
+              <div className="text-center py-12">
+                <Loader2 className="h-12 w-12 animate-spin text-green-600 mx-auto mb-4" />
+                <p className="text-gray-600">Loading activities...</p>
+              </div>
+            ) : activities.length === 0 ? (
+              <div className="text-center py-12">
+                <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600 mb-2">No activities logged yet</p>
+                <p className="text-sm text-gray-500">
+                  Click "Log New Activity" to add your first entry
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {Object.entries(groupedActivities)
+                  .sort(
+                    ([dateA], [dateB]) =>
+                      new Date(dateB).getTime() - new Date(dateA).getTime()
+                  )
+                  .map(([date, dayActivities]) => (
+                    <div key={date}>
+                      <h3 className="text-lg font-semibold text-gray-700 mb-3">
+                        {formatRelativeDate(new Date(date))}
+                      </h3>
+                      <div className="space-y-3">
+                        {dayActivities.map((activity) => (
+                          <div
+                            key={activity.id}
+                            className="flex items-start gap-4 p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
+                          >
+                            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-green-100">
+                              {(() => {
+                                const Icon = activityIcons[activity.type];
+                                return (
+                                  <Icon className="h-6 w-6 text-green-600" />
+                                );
+                              })()}
                             </div>
-                            <div className="flex items-center gap-6 text-sm text-gray-500">
-                              {activity.duration && (
-                                <span className="flex items-center gap-1">
-                                  <Clock className="h-4 w-4" />{" "}
-                                  {activity.duration} min
-                                </span>
-                              )}
-                              {activity.laborHours && (
-                                <span className="flex items-center gap-1">
-                                  <Users className="h-4 w-4" />{" "}
-                                  {activity.laborHours}h labor
-                                </span>
-                              )}
-                              {activity.cost && (
-                                <span className="flex items-center gap-1">
-                                  <DollarSign className="h-4 w-4" /> ฿
-                                  {activity.cost.toLocaleString()}
-                                </span>
-                              )}
-                              {activity.resources &&
-                                activity.resources.length > 0 && (
+                            <div className="flex-1">
+                              <div className="flex items-start justify-between mb-2">
+                                <div>
+                                  <h4 className="font-semibold text-gray-900">
+                                    {activity.title}
+                                  </h4>
+                                  <p className="text-sm text-gray-600">
+                                    {activity.description}
+                                  </p>
+                                </div>
+                                <Badge variant="default" className="capitalize">
+                                  {activity.type}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-6 text-sm text-gray-500">
+                                {activity.duration && (
                                   <span className="flex items-center gap-1">
-                                    <Package className="h-4 w-4" />{" "}
-                                    {activity.resources.length} resource(s)
+                                    <Clock className="h-4 w-4" />{" "}
+                                    {activity.duration} min
                                   </span>
                                 )}
+                                {activity.laborHours && (
+                                  <span className="flex items-center gap-1">
+                                    <Users className="h-4 w-4" />{" "}
+                                    {activity.laborHours}h labor
+                                  </span>
+                                )}
+                                {activity.cost && (
+                                  <span className="flex items-center gap-1">
+                                    <DollarSign className="h-4 w-4" /> ฿
+                                    {activity.cost.toLocaleString()}
+                                  </span>
+                                )}
+                                {activity.resources &&
+                                  activity.resources.length > 0 && (
+                                    <span className="flex items-center gap-1">
+                                      <Package className="h-4 w-4" />{" "}
+                                      {activity.resources.length} resource(s)
+                                    </span>
+                                  )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
-            </div>
+                  ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </main>

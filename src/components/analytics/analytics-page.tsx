@@ -46,17 +46,22 @@ export default function AnalyticsPage() {
   const fetchAnalytics = async () => {
     setLoading(true);
     try {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "";
+
       // Fetch profit forecast
-      const forecastRes = await fetch("/api/analytics/profit-forecast", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          farmId: "farm-1",
-          cropId: "crop-1",
-          cropName: selectedCrop,
-          area: crops.find((c) => c.value === selectedCrop)?.area || 5,
-        }),
-      });
+      const forecastRes = await fetch(
+        `${backendUrl}/analytics/profit-forecast`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            farmId: "farm-1",
+            cropId: "crop-1",
+            cropName: selectedCrop,
+            area: crops.find((c) => c.value === selectedCrop)?.area || 5,
+          }),
+        }
+      );
       const forecastData = await forecastRes.json();
       if (forecastData.success) {
         setProfitForecast(forecastData.data);
@@ -64,7 +69,7 @@ export default function AnalyticsPage() {
 
       // Fetch market prediction
       const marketRes = await fetch(
-        `/api/analytics/market-prediction?crop=${selectedCrop}`
+        `${backendUrl}/analytics/market-prediction?crop=${selectedCrop}`
       );
       const marketData = await marketRes.json();
       if (marketData.success) {

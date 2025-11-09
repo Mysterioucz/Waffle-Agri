@@ -1,8 +1,46 @@
 import { NextResponse } from "next/server";
 import { DailyGuidance, RecommendedTask, FarmingTip, Alert } from "@/types";
+import { prisma } from "@/lib/prisma";
 
 // Mock ModelArts AI integration for daily guidance
 // In production, this would call Huawei ModelArts API
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get("userId");
+
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: "userId is required" },
+        { status: 400 }
+      );
+    }
+
+    // Fetch AI guidance from database
+    const aiGuidances = await prisma.aIGuidance.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: aiGuidances,
+      timestamp: new Date(),
+    });
+  } catch (error) {
+    console.error("AI Guidance GET error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to fetch AI guidance",
+        timestamp: new Date(),
+      },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(request: Request) {
   try {
