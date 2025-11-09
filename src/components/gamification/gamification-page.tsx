@@ -8,6 +8,16 @@ import { Progress } from "@/components/ui/progress";
 import { User, Badge as BadgeType, Achievement, Reward } from "@/types";
 import { BADGES, POINTS, REWARD_COSTS } from "@/lib/constants";
 import { calculateLevel, pointsForNextLevel } from "@/lib/utils";
+import {
+  Trophy,
+  Star,
+  Flame,
+  Award,
+  Lock,
+  Gift,
+  Sparkles,
+  Sprout,
+} from "lucide-react";
 
 export default function GamificationPage() {
   // Mock user data
@@ -25,7 +35,7 @@ export default function GamificationPage() {
         id: "badge-1",
         name: "First Steps",
         description: "Created your first farm",
-        icon: "🌱",
+        icon: "sprout",
         rarity: "common",
         earnedAt: new Date("2025-09-01"),
       },
@@ -33,7 +43,7 @@ export default function GamificationPage() {
         id: "badge-2",
         name: "Dedicated Farmer",
         description: "Maintained a 7-day streak",
-        icon: "🔥",
+        icon: "flame",
         rarity: "rare",
         earnedAt: new Date("2025-11-01"),
       },
@@ -115,14 +125,35 @@ export default function GamificationPage() {
   const progressToNextLevel =
     ((user.points % nextLevelPoints) / nextLevelPoints) * 100;
 
+  const badgeIconMap: Record<
+    string,
+    React.ComponentType<{ className?: string }>
+  > = {
+    sprout: Sprout,
+    flame: Flame,
+    trophy: Trophy,
+    star: Star,
+    award: Award,
+  };
+
+  const getBadgeIcon = (iconName: string) => {
+    const Icon = badgeIconMap[iconName] || Award;
+    return Icon;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-purple-600 text-white shadow-lg">
         <div className="max-w-7xl mx-auto px-4 py-6">
-          <h1 className="text-3xl font-bold">🏆 Rewards & Achievements</h1>
-          <p className="text-purple-100 mt-1">
-            Track your progress and redeem rewards
-          </p>
+          <div className="flex items-center gap-3">
+            <Trophy className="h-8 w-8" />
+            <div>
+              <h1 className="text-3xl font-bold">Rewards & Achievements</h1>
+              <p className="text-purple-100 mt-1">
+                Track your progress and redeem rewards
+              </p>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -132,7 +163,7 @@ export default function GamificationPage() {
           <Card>
             <CardContent className="pt-6">
               <div className="text-center">
-                <div className="text-6xl mb-3">⭐</div>
+                <Star className="h-16 w-16 text-purple-600 mx-auto mb-3" />
                 <div className="text-3xl font-bold text-purple-600">
                   Level {user.level}
                 </div>
@@ -153,7 +184,7 @@ export default function GamificationPage() {
           <Card>
             <CardContent className="pt-6">
               <div className="text-center">
-                <div className="text-6xl mb-3">🔥</div>
+                <Flame className="h-16 w-16 text-orange-600 mx-auto mb-3" />
                 <div className="text-3xl font-bold text-orange-600">
                   {user.streak} Days
                 </div>
@@ -188,20 +219,23 @@ export default function GamificationPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {user.badges.map((badge) => (
-                <div
-                  key={badge.id}
-                  className="text-center p-4 bg-yellow-50 rounded-lg border-2 border-yellow-300"
-                >
-                  <div className="text-4xl mb-2">{badge.icon}</div>
-                  <div className="font-semibold text-sm text-gray-900">
-                    {badge.name}
+              {user.badges.map((badge) => {
+                const BadgeIcon = getBadgeIcon(badge.icon);
+                return (
+                  <div
+                    key={badge.id}
+                    className="text-center p-4 bg-yellow-50 rounded-lg border-2 border-yellow-300"
+                  >
+                    <BadgeIcon className="h-10 w-10 text-yellow-600 mx-auto mb-2" />
+                    <div className="font-semibold text-sm text-gray-900">
+                      {badge.name}
+                    </div>
+                    <Badge variant="default" className="mt-2 text-xs">
+                      {badge.rarity}
+                    </Badge>
                   </div>
-                  <Badge variant="default" className="mt-2 text-xs">
-                    {badge.rarity}
-                  </Badge>
-                </div>
-              ))}
+                );
+              })}
               {Object.values(BADGES)
                 .filter((b) => !user.badges.find((ub) => ub.name === b.name))
                 .slice(0, 4)
@@ -210,7 +244,7 @@ export default function GamificationPage() {
                     key={idx}
                     className="text-center p-4 bg-gray-100 rounded-lg border-2 border-gray-300 opacity-50"
                   >
-                    <div className="text-4xl mb-2 grayscale">🔒</div>
+                    <Lock className="h-10 w-10 text-gray-400 mx-auto mb-2" />
                     <div className="font-semibold text-sm text-gray-600">
                       {badge.name}
                     </div>
@@ -283,9 +317,11 @@ export default function GamificationPage() {
                     }`}
                   >
                     <div className="text-center mb-4">
-                      <div className="text-4xl mb-2">
-                        {reward.type === "subscription-upgrade" ? "⭐" : "🎁"}
-                      </div>
+                      {reward.type === "subscription-upgrade" ? (
+                        <Star className="h-10 w-10 text-purple-600 mx-auto mb-2" />
+                      ) : (
+                        <Gift className="h-10 w-10 text-green-600 mx-auto mb-2" />
+                      )}
                       <h4 className="font-semibold text-gray-900">
                         {reward.name}
                       </h4>

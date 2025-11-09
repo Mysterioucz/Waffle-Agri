@@ -6,6 +6,23 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProfitForecast, MarketPrediction } from "@/types";
 import { formatCurrency } from "@/lib/utils";
+import {
+  BarChart3,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  DollarSign,
+  PieChart,
+  Activity,
+  Lightbulb,
+  Loader2,
+  Wheat,
+  Sprout,
+  Leaf,
+  CheckCircle,
+  AlertTriangle,
+  Info,
+} from "lucide-react";
 
 export default function AnalyticsPage() {
   const [profitForecast, setProfitForecast] = useState<ProfitForecast | null>(
@@ -17,9 +34,9 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
 
   const crops = [
-    { value: "rice", label: "🌾 Rice", area: 5 },
-    { value: "corn", label: "🌽 Corn", area: 3 },
-    { value: "vegetables", label: "🥬 Vegetables", area: 2 },
+    { value: "rice", label: "Rice", Icon: Wheat, area: 5 },
+    { value: "corn", label: "Corn", Icon: Sprout, area: 3 },
+    { value: "vegetables", label: "Vegetables", Icon: Leaf, area: 2 },
   ];
 
   useEffect(() => {
@@ -74,11 +91,11 @@ export default function AnalyticsPage() {
   const getTrendIcon = (trend: string) => {
     switch (trend) {
       case "rising":
-        return "📈";
+        return <TrendingUp className="h-5 w-5 inline" />;
       case "falling":
-        return "📉";
+        return <TrendingDown className="h-5 w-5 inline" />;
       default:
-        return "➡️";
+        return <Minus className="h-5 w-5 inline" />;
     }
   };
 
@@ -86,10 +103,15 @@ export default function AnalyticsPage() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-blue-600 text-white shadow-lg">
         <div className="max-w-7xl mx-auto px-4 py-6">
-          <h1 className="text-3xl font-bold">📊 Analytics & Forecasting</h1>
-          <p className="text-blue-100 mt-1">
-            AI-powered insights for optimal farm management
-          </p>
+          <div className="flex items-center gap-3">
+            <BarChart3 className="h-8 w-8" />
+            <div>
+              <h1 className="text-3xl font-bold">Analytics & Forecasting</h1>
+              <p className="text-blue-100 mt-1">
+                AI-powered insights for optimal farm management
+              </p>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -100,21 +122,26 @@ export default function AnalyticsPage() {
             Select Crop for Analysis
           </label>
           <div className="flex gap-3">
-            {crops.map((crop) => (
-              <Button
-                key={crop.value}
-                variant={selectedCrop === crop.value ? "primary" : "outline"}
-                onClick={() => setSelectedCrop(crop.value)}
-              >
-                {crop.label}
-              </Button>
-            ))}
+            {crops.map((crop) => {
+              const CropIcon = crop.Icon;
+              return (
+                <Button
+                  key={crop.value}
+                  variant={selectedCrop === crop.value ? "primary" : "outline"}
+                  onClick={() => setSelectedCrop(crop.value)}
+                  className="flex items-center gap-2"
+                >
+                  <CropIcon className="h-4 w-4" />
+                  {crop.label}
+                </Button>
+              );
+            })}
           </div>
         </div>
 
         {loading ? (
           <div className="text-center py-12">
-            <div className="text-4xl mb-4">📊</div>
+            <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
             <p className="text-gray-600">Analyzing data...</p>
           </div>
         ) : (
@@ -184,44 +211,59 @@ export default function AnalyticsPage() {
                       Key Factors
                     </h4>
                     <div className="space-y-3">
-                      {profitForecast.factors.map((factor, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg"
-                        >
-                          <div className="text-2xl">
-                            {factor.impact === "positive"
-                              ? "✅"
-                              : factor.impact === "negative"
-                              ? "⚠️"
-                              : "ℹ️"}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between mb-1">
-                              <h5 className="font-semibold text-gray-900">
-                                {factor.name}
-                              </h5>
-                              <Badge
-                                variant={
+                      {profitForecast.factors.map((factor, idx) => {
+                        const getImpactIcon = () => {
+                          if (factor.impact === "positive") return CheckCircle;
+                          if (factor.impact === "negative")
+                            return AlertTriangle;
+                          return Info;
+                        };
+                        const ImpactIcon = getImpactIcon();
+
+                        return (
+                          <div
+                            key={idx}
+                            className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg"
+                          >
+                            <div className="mt-0.5">
+                              <ImpactIcon
+                                className={`h-6 w-6 ${
                                   factor.impact === "positive"
-                                    ? "success"
+                                    ? "text-green-600"
                                     : factor.impact === "negative"
-                                    ? "warning"
-                                    : "info"
-                                }
-                              >
-                                {factor.impact}
-                              </Badge>
+                                    ? "text-yellow-600"
+                                    : "text-blue-600"
+                                }`}
+                              />
                             </div>
-                            <p className="text-sm text-gray-600">
-                              {factor.description}
-                            </p>
-                            <div className="text-xs text-gray-500 mt-1">
-                              {Math.round(factor.confidence * 100)}% confidence
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between mb-1">
+                                <h5 className="font-semibold text-gray-900">
+                                  {factor.name}
+                                </h5>
+                                <Badge
+                                  variant={
+                                    factor.impact === "positive"
+                                      ? "success"
+                                      : factor.impact === "negative"
+                                      ? "warning"
+                                      : "info"
+                                  }
+                                >
+                                  {factor.impact}
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-gray-600">
+                                {factor.description}
+                              </p>
+                              <div className="text-xs text-gray-500 mt-1">
+                                {Math.round(factor.confidence * 100)}%
+                                confidence
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 </CardContent>
@@ -271,9 +313,12 @@ export default function AnalyticsPage() {
 
                   {/* Recommendation */}
                   <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <h4 className="font-semibold text-blue-900 mb-2">
-                      💡 AI Recommendation
-                    </h4>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Lightbulb className="h-5 w-5 text-blue-600" />
+                      <h4 className="font-semibold text-blue-900">
+                        AI Recommendation
+                      </h4>
+                    </div>
                     <p className="text-blue-800">
                       {marketPrediction.recommendation}
                     </p>

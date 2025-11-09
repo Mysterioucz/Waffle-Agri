@@ -1,5 +1,16 @@
 import React from "react";
 import { WeatherCondition } from "@/types";
+import {
+  Sun,
+  Cloud,
+  CloudSun,
+  CloudRain,
+  CloudDrizzle,
+  CloudLightning,
+  CloudFog,
+  Thermometer,
+  Snowflake,
+} from "lucide-react";
 
 interface WeatherIconProps {
   condition: WeatherCondition;
@@ -7,22 +18,25 @@ interface WeatherIconProps {
   className?: string;
 }
 
-const iconMap: Record<WeatherCondition, string> = {
-  clear: "☀️",
-  "partly-cloudy": "⛅",
-  cloudy: "☁️",
-  rain: "🌧️",
-  "heavy-rain": "⛈️",
-  thunderstorm: "⚡",
-  fog: "🌫️",
-  hot: "🔥",
-  cold: "❄️",
+const iconMap: Record<
+  WeatherCondition,
+  React.ComponentType<{ className?: string }>
+> = {
+  clear: Sun,
+  "partly-cloudy": CloudSun,
+  cloudy: Cloud,
+  rain: CloudRain,
+  "heavy-rain": CloudDrizzle,
+  thunderstorm: CloudLightning,
+  fog: CloudFog,
+  hot: Thermometer,
+  cold: Snowflake,
 };
 
 const sizeStyles = {
-  sm: "text-2xl",
-  md: "text-4xl",
-  lg: "text-6xl",
+  sm: "h-6 w-6",
+  md: "h-10 w-10",
+  lg: "h-16 w-16",
 };
 
 export function WeatherIcon({
@@ -30,9 +44,7 @@ export function WeatherIcon({
   size = "md",
   className = "",
 }: WeatherIconProps) {
-  return (
-    <span className={`${sizeStyles[size]} ${className}`}>
-      {iconMap[condition]}
-    </span>
-  );
+  const Icon = iconMap[condition];
+
+  return <Icon className={`${sizeStyles[size]} ${className}`} />;
 }

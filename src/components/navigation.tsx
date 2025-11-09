@@ -3,15 +3,16 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Home, BookOpen, BarChart3, Trophy } from "lucide-react";
 
 export function Navigation() {
   const pathname = usePathname();
 
   const navItems = [
-    { href: "/", label: "🏠 Dashboard", icon: "🏠" },
-    { href: "/logbook", label: "📖 Logbook", icon: "📖" },
-    { href: "/analytics", label: "📊 Analytics", icon: "📊" },
-    { href: "/rewards", label: "🏆 Rewards", icon: "🏆" },
+    { href: "/", label: "Dashboard", icon: Home },
+    { href: "/logbook", label: "Logbook", icon: BookOpen },
+    { href: "/analytics", label: "Analytics", icon: BarChart3 },
+    { href: "/rewards", label: "Rewards", icon: Trophy },
   ];
 
   return (
@@ -20,6 +21,7 @@ export function Navigation() {
         <div className="flex items-center justify-around md:justify-start md:gap-8 py-3">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
+            const Icon = item.icon;
             return (
               <Link
                 key={item.href}
@@ -30,10 +32,8 @@ export function Navigation() {
                     : "text-gray-600 hover:bg-gray-100"
                 }`}
               >
-                <span className="text-xl md:text-base">{item.icon}</span>
-                <span className="text-xs md:text-base">
-                  {item.label.split(" ")[1]}
-                </span>
+                <Icon className="h-5 w-5" />
+                <span className="text-xs md:text-base">{item.label}</span>
               </Link>
             );
           })}

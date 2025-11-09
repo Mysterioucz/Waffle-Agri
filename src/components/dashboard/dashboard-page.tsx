@@ -8,6 +8,14 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { WeatherData, DailyGuidance, User, Farm } from "@/types";
 import { formatRelativeDate } from "@/lib/utils";
+import {
+  Wheat,
+  Flame,
+  Clock,
+  DollarSign,
+  AlertTriangle,
+  Loader2,
+} from "lucide-react";
 
 export default function DashboardPage() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
@@ -32,7 +40,7 @@ export default function DashboardPage() {
   const farm: Farm = {
     id: "farm-1",
     userId: "user-1",
-    name: "ฟาร์มต้นแบบ",
+    name: "Prototype Farm",
     location: {
       latitude: 13.7563,
       longitude: 100.5018,
@@ -111,7 +119,7 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-4xl mb-4">🌾</div>
+          <Loader2 className="h-12 w-12 animate-spin text-green-600 mx-auto mb-4" />
           <p className="text-gray-600">Loading your farm dashboard...</p>
         </div>
       </div>
@@ -124,9 +132,12 @@ export default function DashboardPage() {
       <header className="bg-green-600 text-white shadow-lg">
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold">🌾 Waffle Agri</h1>
-              <p className="text-green-100 mt-1">{farm.name}</p>
+            <div className="flex items-center gap-3">
+              <Wheat className="h-8 w-8" />
+              <div>
+                <h1 className="text-3xl font-bold">Waffle Agri</h1>
+                <p className="text-green-100 mt-1">{farm.name}</p>
+              </div>
             </div>
             <div className="flex items-center gap-6">
               <div className="text-right">
@@ -135,7 +146,10 @@ export default function DashboardPage() {
               </div>
               <div className="text-right">
                 <div className="text-sm text-green-100">Streak</div>
-                <div className="font-bold">🔥 {user.streak} days</div>
+                <div className="font-bold flex items-center gap-1 justify-end">
+                  <Flame className="h-4 w-4" />
+                  {user.streak} days
+                </div>
               </div>
             </div>
           </div>
@@ -215,8 +229,12 @@ export default function DashboardPage() {
                   </div>
                   {weather.alerts && weather.alerts.length > 0 && (
                     <div className="pt-3 border-t">
-                      <Badge variant="warning">
-                        ⚠️ {weather.alerts.length} Weather Alert(s)
+                      <Badge
+                        variant="warning"
+                        className="flex items-center gap-1 w-fit"
+                      >
+                        <AlertTriangle className="h-3 w-3" />
+                        {weather.alerts.length} Weather Alert(s)
                       </Badge>
                     </div>
                   )}
@@ -304,9 +322,15 @@ export default function DashboardPage() {
                         {task.description}
                       </p>
                       <div className="flex items-center gap-4 text-xs text-gray-500">
-                        <span>⏱️ {task.estimatedDuration} min</span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {task.estimatedDuration} min
+                        </span>
                         {task.estimatedCost && (
-                          <span>💰 ฿{task.estimatedCost}</span>
+                          <span className="flex items-center gap-1">
+                            <DollarSign className="h-3 w-3" />฿
+                            {task.estimatedCost}
+                          </span>
                         )}
                         <span className="ml-auto italic">{task.reasoning}</span>
                       </div>

@@ -11,6 +11,23 @@ import {
   groupActivitiesByDate,
 } from "@/lib/utils";
 import { ACTIVITY_DURATIONS } from "@/lib/constants";
+import {
+  Droplet,
+  Sprout,
+  Bug,
+  Leaf,
+  Wheat,
+  Scissors,
+  Search,
+  FileText,
+  BookOpen,
+  Plus,
+  X,
+  Clock,
+  Users,
+  DollarSign,
+  Package,
+} from "lucide-react";
 
 export default function FarmLogbookPage() {
   const [activities, setActivities] = useState<FarmActivity[]>([
@@ -69,16 +86,19 @@ export default function FarmLogbookPage() {
     resources: [],
   });
 
-  const activityIcons: Record<ActivityType, string> = {
-    watering: "💧",
-    fertilizing: "🌱",
-    pesticide: "🪲",
-    weeding: "🌿",
-    harvesting: "🌾",
-    planting: "🌱",
-    pruning: "✂️",
-    inspection: "🔍",
-    other: "📝",
+  const activityIcons: Record<
+    ActivityType,
+    React.ComponentType<{ className?: string }>
+  > = {
+    watering: Droplet,
+    fertilizing: Sprout,
+    pesticide: Bug,
+    weeding: Leaf,
+    harvesting: Wheat,
+    planting: Sprout,
+    pruning: Scissors,
+    inspection: Search,
+    other: FileText,
   };
 
   const groupedActivities = groupActivitiesByDate(activities);
@@ -114,10 +134,15 @@ export default function FarmLogbookPage() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-green-600 text-white shadow-lg">
         <div className="max-w-7xl mx-auto px-4 py-6">
-          <h1 className="text-3xl font-bold">📖 Farm Logbook</h1>
-          <p className="text-green-100 mt-1">
-            Track your daily farming activities
-          </p>
+          <div className="flex items-center gap-3">
+            <BookOpen className="h-8 w-8" />
+            <div>
+              <h1 className="text-3xl font-bold">Farm Logbook</h1>
+              <p className="text-green-100 mt-1">
+                Track your daily farming activities
+              </p>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -182,7 +207,17 @@ export default function FarmLogbookPage() {
         {/* Add Activity Button */}
         <div className="mb-6">
           <Button onClick={() => setShowAddForm(!showAddForm)}>
-            {showAddForm ? "✖ Cancel" : "➕ Log New Activity"}
+            {showAddForm ? (
+              <>
+                <X className="h-4 w-4 mr-2" />
+                Cancel
+              </>
+            ) : (
+              <>
+                <Plus className="h-4 w-4 mr-2" />
+                Log New Activity
+              </>
+            )}
           </Button>
         </div>
 
@@ -209,17 +244,15 @@ export default function FarmLogbookPage() {
                         })
                       }
                     >
-                      <option value="watering">💧 Watering</option>
-                      <option value="fertilizing">🌱 Fertilizing</option>
-                      <option value="pesticide">
-                        🪲 Pesticide Application
-                      </option>
-                      <option value="weeding">🌿 Weeding</option>
-                      <option value="harvesting">🌾 Harvesting</option>
-                      <option value="planting">🌱 Planting</option>
-                      <option value="pruning">✂️ Pruning</option>
-                      <option value="inspection">🔍 Inspection</option>
-                      <option value="other">📝 Other</option>
+                      <option value="watering">Watering</option>
+                      <option value="fertilizing">Fertilizing</option>
+                      <option value="pesticide">Pesticide Application</option>
+                      <option value="weeding">Weeding</option>
+                      <option value="harvesting">Harvesting</option>
+                      <option value="planting">Planting</option>
+                      <option value="pruning">Pruning</option>
+                      <option value="inspection">Inspection</option>
+                      <option value="other">Other</option>
                     </select>
                   </div>
                   <div>
@@ -307,8 +340,13 @@ export default function FarmLogbookPage() {
                           key={activity.id}
                           className="flex items-start gap-4 p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
                         >
-                          <div className="text-3xl">
-                            {activityIcons[activity.type]}
+                          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-green-100">
+                            {(() => {
+                              const Icon = activityIcons[activity.type];
+                              return (
+                                <Icon className="h-6 w-6 text-green-600" />
+                              );
+                            })()}
                           </div>
                           <div className="flex-1">
                             <div className="flex items-start justify-between mb-2">
@@ -326,20 +364,28 @@ export default function FarmLogbookPage() {
                             </div>
                             <div className="flex items-center gap-6 text-sm text-gray-500">
                               {activity.duration && (
-                                <span>⏱️ {activity.duration} min</span>
+                                <span className="flex items-center gap-1">
+                                  <Clock className="h-4 w-4" />{" "}
+                                  {activity.duration} min
+                                </span>
                               )}
                               {activity.laborHours && (
-                                <span>👷 {activity.laborHours}h labor</span>
+                                <span className="flex items-center gap-1">
+                                  <Users className="h-4 w-4" />{" "}
+                                  {activity.laborHours}h labor
+                                </span>
                               )}
                               {activity.cost && (
-                                <span>
-                                  💰 ฿{activity.cost.toLocaleString()}
+                                <span className="flex items-center gap-1">
+                                  <DollarSign className="h-4 w-4" /> ฿
+                                  {activity.cost.toLocaleString()}
                                 </span>
                               )}
                               {activity.resources &&
                                 activity.resources.length > 0 && (
-                                  <span>
-                                    📦 {activity.resources.length} resource(s)
+                                  <span className="flex items-center gap-1">
+                                    <Package className="h-4 w-4" />{" "}
+                                    {activity.resources.length} resource(s)
                                   </span>
                                 )}
                             </div>
